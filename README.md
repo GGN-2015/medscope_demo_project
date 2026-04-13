@@ -1,6 +1,9 @@
 # medscope_demo_project
 Demo project for medscope.
 
+> [!IMPORTANT]
+> To run this program you need a Aimooe AP-200-STD System.
+
 ## Demo
 
 ![](./img/demo.gif)
