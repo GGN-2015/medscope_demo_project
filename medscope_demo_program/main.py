@@ -1,5 +1,6 @@
 import medscope
 from read_nii_to_numpy import nii_file_to_numpy
+from remote_auto_fetch import remote_auto_fetch
 import numpy as np
 import pickle
 
@@ -17,12 +18,18 @@ CT_FILE = os.path.join(DATA_DIR, "CT.nii")
 CT_PICKLE = os.path.join(DATA_DIR, "CT.pickle")
 BONE_STL = os.path.join(DATA_DIR, "BONE-1.new.stl")
 
+# download from github
+remote_auto_fetch(
+    "https://github.com/GGN-2015/medscope_demo_project/releases/download/binary_file/CT.nii",
+    CT_FILE, md5_hash="58C6F98ED7C3E9DB4B5CD265CADD5882")
+
 def main():
     # Fill in your ip addr
     bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
 
     # Load CT file
     if not os.path.isfile(CT_PICKLE):
+        print("Calculating CT_PICKLE ...")
         arr = nii_file_to_numpy(CT_FILE, 1.0, 1.0, 1.0)
         arr[arr <= 3] = 3
         arr[arr >= 253] = 253
