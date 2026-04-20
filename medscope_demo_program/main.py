@@ -32,7 +32,7 @@ def main():
         print("Calculating CT_PICKLE ...")
         arr = nii_file_to_numpy(CT_FILE, 1.0, 1.0, 1.0)
         arr[arr <= 3] = 3
-        arr[arr >= 253] = 253
+        arr[arr >= 160] = 160
         arr_norm = (arr - np.min(arr)) / (np.max(arr) - np.min(arr) + 1e-8)
         arr_uint8 = (arr_norm * 255).astype(np.uint8)
         with open(CT_PICKLE, "wb") as fp: # Create pickle

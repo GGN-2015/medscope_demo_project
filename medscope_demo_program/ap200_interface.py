@@ -1,6 +1,5 @@
 from py_ap200_simple_interface import AimooeExtDrive, I_ConnectionMethod
 import numpy as np
-from typing import Optional
 
 import os
 DIRNOW = os.path.dirname(os.path.abspath(__file__))
@@ -28,11 +27,18 @@ class BoneAndTipInfo:
         assert isinstance(self.bone_Rto, np.ndarray)
         assert isinstance(self.tip_Tto , np.ndarray)
 
-        self.bone_to_ct = np.array([
+        self.bone_to_ct_1 = np.array([
             [0.095946956448921, 0.995254615220118, 0.016199766394794, 154.051369602559532],
             [-0.254370872044368, 0.008781525205108, 0.967066876834516, -123.825411877426021],
             [0.962335513739139, -0.096907872219593, 0.254006344996134, 201.426643071232320],
             [0.000000000000000, 0.000000000000000, 0.000000000000000, 1.000000000000000],
+        ])
+
+        self.ct_1_to_ct2 = np.array([
+            [0.213626280343952, -0.429429591858853, -0.877470249058253, 257.547242739984711],
+            [-0.094269114370527,  0.884951707049311, -0.456041456740843, 279.130800297615963],
+            [0.972356491428018, 0.180140783351391, 0.148566994151943, 195.259821718083003],
+            [0.000000000000000, 0.000000000000000, 0.000000000000000, 1.000000000000000]
         ])
 
     def acquire(self) -> None:
@@ -54,12 +60,12 @@ class BoneAndTipInfo:
 
     # 获得 CT 坐标系下的器械尖端坐标
     def get_tip_in_ct(self):
-        return self.bone_to_ct @ np.hstack([self.get_tip_in_bone(), [1]])
+        return self.ct_1_to_ct2 @ self.bone_to_ct_1 @ np.hstack([self.get_tip_in_bone(), [1]])
     
     # 获得骨骼位姿
     def get_bone_pose(self):
         return self.bone_Rto, self.bone_Tto
-    
+
 if __name__ == "__main__":
     bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
     while True:
