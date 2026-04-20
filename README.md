@@ -1,6 +1,9 @@
 # medscope_demo_project
 Demo project for medscope.
 
+> [!IMPORTANT]
+> To run this program you need a Aimooe AP-200-STD System.
+
 ## Demo
 
 ![](./img/demo.gif)
@@ -19,6 +22,9 @@ pip install remote_auto_fetch
 ```
 
 ## Usage
+
+> [!IMPORTANT]
+> To use the track system, you need to 3D print `BONE-1.new.stl` (with marker) model yourself.
 
 ```bash
 conda activate tmp_lab_env
