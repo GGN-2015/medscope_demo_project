@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.pickle
 *.nii
+.vscode/
 
 # C extensions
 *.so

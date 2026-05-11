@@ -17,6 +17,7 @@ DATA_DIR = os.path.join(DIRNOW, "data")
 CT_FILE = os.path.join(DATA_DIR, "CT.nii")
 CT_PICKLE = os.path.join(DATA_DIR, "CT.pickle")
 BONE_STL = os.path.join(DATA_DIR, "BONE-1.new.stl")
+TOOL_STL = os.path.join(DATA_DIR, "TPS-B4D0-015.stl")
 
 # download from github
 remote_auto_fetch(
@@ -25,11 +26,12 @@ remote_auto_fetch(
 
 def main():
     # Fill in your ip addr
+    print("Connecting ap200 device ...")
     bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
 
     # Load CT file
     if not os.path.isfile(CT_PICKLE):
-        print("Calculating CT_PICKLE ...")
+        print("Generating CT.pickle ...")
         arr = nii_file_to_numpy(CT_FILE, 1.0, 1.0, 1.0)
         arr[arr <= 3] = 3
         arr[arr >= 160] = 160
@@ -39,10 +41,11 @@ def main():
             pickle.dump(arr_uint8, fp)  
     
     else:
+        print("Loading CT.pickle ...")
         with open(CT_PICKLE, "rb") as fp: # Read pickle
             arr_uint8 = pickle.load(fp)
 
-    print(arr_uint8.shape)
+    print("CT.shape:", arr_uint8.shape)
 
     # Initialize app and window
     app = medscope.MedScopeSystem(sys.argv)
@@ -56,6 +59,12 @@ def main():
         "bone_model",
         BONE_STL,
         (1.0, 1.0, 1.0))  # white, random if not given
+    
+    # Add a 3D model
+    window.add_model_from_file(
+        "tool_model",
+        TOOL_STL,
+        (0.75, 0.75, 0.75))  # gray, random if not given
 
     # up at (0, -1, 0)
     window.set_camera_pose(
@@ -74,7 +83,11 @@ def main():
 
         # 获得骨头模型位姿
         r, t = bone_and_tip_info.get_bone_pose()
-        window.set_model_pose("bone_model", t, np.diag([-1, -1, -1]) @ r)
+        window.set_model_pose("bone_model", t, r)
+
+        # 获得手术器械模型位姿
+        r, t = bone_and_tip_info.get_tool_pose()
+        window.set_model_pose("tool_model", t, r)
 
     window.add_timer("move_model", 1, move_model)
     sys.exit(app.exec_())

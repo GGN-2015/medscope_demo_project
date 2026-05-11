@@ -14,12 +14,17 @@ class BoneAndTipInfo:
         self.zero_element = np.zeros((1, 1))
         self.bone_Tto: np.ndarray = self.zero_element
         self.bone_Rto: np.ndarray = self.zero_element
+        self.tool_Tto: np.ndarray = self.zero_element
+        self.tool_Rto: np.ndarray = self.zero_element
         self.tip_Tto : np.ndarray = self.zero_element
 
-        # Until 3 Coord all found
+        # Until Coords all found
+        print("Please show tool and bone model to device camera ...")
         while (
             self.bone_Tto.shape == (1, 1) or
             self.bone_Rto.shape == (1, 1) or
+            self.tool_Tto.shape == (1, 1) or
+            self.tool_Rto.shape == (1, 1) or
             self. tip_Tto.shape == (1, 1)):
             self.acquire()
 
@@ -52,7 +57,9 @@ class BoneAndTipInfo:
         
         tip_info = tool_info_dict.get("TPS-B4D0-015")
         if tip_info is not None:
-            self.tip_Tto = np.array(tip_info["Tooltip"])
+            self.tip_Tto  = np.array(tip_info["Tooltip"])
+            self.tool_Tto = np.array(tip_info["Origin"])
+            self.tool_Rto = np.array(tip_info["rMatrix"])
     
     # 获得骨骼模型坐标系下的器械尖端坐标
     def get_tip_in_bone(self):
@@ -65,6 +72,10 @@ class BoneAndTipInfo:
     # 获得骨骼位姿
     def get_bone_pose(self):
         return self.bone_Rto, self.bone_Tto
+    
+    # 获得器械位姿
+    def get_tool_pose(self):
+        return self.tool_Rto, self.tool_Tto
 
 if __name__ == "__main__":
     bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
