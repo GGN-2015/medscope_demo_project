@@ -16,7 +16,7 @@ DIRNOW = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(DIRNOW, "data")
 CT_FILE = os.path.join(DATA_DIR, "CT.nii")
 CT_PICKLE = os.path.join(DATA_DIR, "CT.pickle")
-BONE_STL = os.path.join(DATA_DIR, "BONE-1.new.stl")
+BONE_STL = os.path.join(DATA_DIR, "BONE-1.real.stl")
 TOOL_STL = os.path.join(DATA_DIR, "TPS-B4D0-015.stl")
 
 # download from github

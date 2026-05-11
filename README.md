@@ -24,7 +24,7 @@ pip install remote_auto_fetch
 ## Usage
 
 > [!IMPORTANT]
-> To use the track system, you need to 3D print `BONE-1.new.stl` (with marker) model yourself.
+> To use the track system, you need to 3D print `BONE-1.real.stl` (with marker) model yourself.
 
 ```bash
 conda activate tmp_lab_env
