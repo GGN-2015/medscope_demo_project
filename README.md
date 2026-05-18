@@ -6,7 +6,7 @@ Demo project for medscope.
 
 ## Demo
 
-![](./img/demo.gif)
+![](https://github.com/GGN-2015/medscope_demo_project/blob/main/img/demo.gif?raw=true)
 
 ## Installation
 
@@ -26,7 +26,15 @@ pip install remote_auto_fetch
 > [!IMPORTANT]
 > To use the track system, you need to 3D print `BONE-1.real.stl` (with marker) model yourself.
 
+> [!TIP]
+> If you do not have an ap200 device, use `--fake` parameter when running this demo.
+
 ```bash
 conda activate tmp_lab_env
+
+# if you have an ap200 device
 python ./medscope_demo_program/main.py
+
+# if you do not have an ap200 device
+# python ./medscope_demo_program/main.py --fake
 ```

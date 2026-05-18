@@ -8,9 +8,11 @@ import sys
 import os
 
 try:
-    from .ap200_interface import BoneAndTipInfo
+    from .Ap200_BoneAndTipInfo import Ap200_BoneAndTipInfo, AbsBoneAndTipInfo
+    from .FakeBoneAndTipInfo import FakeBoneAndTipInfo
 except:
-    from ap200_interface import BoneAndTipInfo
+    from Ap200_BoneAndTipInfo import Ap200_BoneAndTipInfo, AbsBoneAndTipInfo
+    from FakeBoneAndTipInfo import FakeBoneAndTipInfo
 
 DIRNOW = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(DIRNOW, "data")
@@ -24,11 +26,7 @@ remote_auto_fetch(
     "https://github.com/GGN-2015/medscope_demo_project/releases/download/binary_file/CT.nii",
     CT_FILE, md5_hash="58C6F98ED7C3E9DB4B5CD265CADD5882")
 
-def main():
-    # Fill in your ip addr
-    print("Connecting ap200 device ...")
-    bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
-
+def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False):
     # Load CT file
     if not os.path.isfile(CT_PICKLE):
         print("Generating CT.pickle ...")
@@ -47,9 +45,20 @@ def main():
 
     print("CT.shape:", arr_uint8.shape)
 
+    # Fill in your ip addr
+    if not use_fake_device:
+        print("Connecting ap200 device ...")
+        bone_and_tip_info:AbsBoneAndTipInfo = Ap200_BoneAndTipInfo(device_ip_addr)
+    else:
+        bone_and_tip_info:AbsBoneAndTipInfo = FakeBoneAndTipInfo(arr_uint8.shape[0], arr_uint8.shape[1], arr_uint8.shape[2])
+
     # Initialize app and window
     app = medscope.MedScopeSystem(sys.argv)
-    window = medscope.MedScopeWindow()
+    window = medscope.MedScopeWindow(
+        im_wrap_xy=medscope.ImageWrap(y_rev=True, transpose=True),
+        im_wrap_xz=medscope.ImageWrap(y_rev=True, transpose=True),
+        im_wrap_yz=medscope.ImageWrap(x_rev=True, y_rev=True)
+    )
 
     # Load Ct file
     window.set_volume(arr_uint8)
@@ -64,7 +73,7 @@ def main():
     window.add_model_from_file(
         "tool_model",
         TOOL_STL,
-        (0.75, 0.75, 0.75))  # gray, random if not given
+        (0.1, 0.1, 0.1))  # gray, random if not given
 
     # up at (0, -1, 0)
     window.set_camera_pose(
@@ -93,4 +102,10 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--fake" in sys.argv:
+        use_fake_device = True
+    else:
+        y_or_n = input("Would you like to use fake device (y/N): ").lower()
+        use_fake_device = (y_or_n.startswith("y"))
+    main(use_fake_device=use_fake_device)

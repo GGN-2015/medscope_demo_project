@@ -5,7 +5,12 @@ import os
 DIRNOW = os.path.dirname(os.path.abspath(__file__))
 TOOL_DIR = os.path.join(DIRNOW, "AimooeTools")
 
-class BoneAndTipInfo:
+try:
+    from .AbsBoneAndTipInfo import AbsBoneAndTipInfo
+except:
+    from AbsBoneAndTipInfo import AbsBoneAndTipInfo
+
+class Ap200_BoneAndTipInfo(AbsBoneAndTipInfo):
     def __init__(self, ip_addr:str) -> None:
         # Initialize AimooeExtDrive
         self.drive = AimooeExtDrive()
@@ -39,7 +44,6 @@ class BoneAndTipInfo:
             [0.0, 0.0, 0.0, 1.0]
         ])
 
-
     def acquire(self) -> None:
         tool_info_dict = self.drive.get_specific_tool_info(
             TOOL_DIR, ["BONE-1", "TPS-B4D0-015"])
@@ -56,23 +60,23 @@ class BoneAndTipInfo:
             self.tool_Rto = np.array(tip_info["rMatrix"])
     
     # 获得骨骼模型坐标系下的器械尖端坐标
-    def get_tip_in_bone(self):
+    def get_tip_in_bone(self) -> np.ndarray:
         return self.bone_Rto.T @ (self.tip_Tto - self.bone_Tto)
 
     # 获得 CT 坐标系下的器械尖端坐标
-    def get_tip_in_ct(self):
+    def get_tip_in_ct(self) -> np.ndarray:
         return self.bone_to_ct @ np.hstack([self.get_tip_in_bone(), [1]])
     
     # 获得骨骼位姿
-    def get_bone_pose(self):
+    def get_bone_pose(self) -> tuple[np.ndarray, ...]:
         return self.bone_Rto, self.bone_Tto
     
     # 获得器械位姿
-    def get_tool_pose(self):
+    def get_tool_pose(self) -> tuple[np.ndarray, ...]:
         return self.tool_Rto, self.tool_Tto
 
 if __name__ == "__main__":
-    bone_and_tip_info = BoneAndTipInfo("192.168.1.10")
+    bone_and_tip_info:AbsBoneAndTipInfo = Ap200_BoneAndTipInfo("192.168.1.10")
     while True:
         bone_and_tip_info.acquire()
         print(bone_and_tip_info.get_tip_in_ct())
