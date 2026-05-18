@@ -50,7 +50,7 @@ def make_and_load_pickle(nii_filepath:str, min_val:float, max_val:float) -> np.n
             arr_uint8 = pickle.load(fp)
     return arr_uint8
 
-def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False):
+def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False, mask_alpha:float=0.7):
 
     # 构建 RGB 通道
     ct_arr_uint8 = make_and_load_pickle(CT_FILE, 3, 160)
@@ -65,7 +65,11 @@ def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False):
     assert seg_arr_uint8.shape == ct_arr_uint8.shape[1:]
 
     # 把掩码打到红色通道
-    ct_arr_uint8[0, :, :] = np.maximum(ct_arr_uint8[0, :, :], (seg_arr_uint8 >= 0.5) * 255)
+    ct_arr_uint8 = ct_arr_uint8.astype(np.float64)
+    ct_arr_uint8[0, :, :, :] = np.maximum(ct_arr_uint8[0, :, :], (seg_arr_uint8 >= 0.5) * 255)
+    ct_arr_uint8[1, :, :, :] [seg_arr_uint8 >= 0.5] *= mask_alpha
+    ct_arr_uint8[2, :, :, :] [seg_arr_uint8 >= 0.5] *= mask_alpha
+    ct_arr_uint8 = ct_arr_uint8.astype(np.uint8)
 
     # Fill in your ip addr
     if not use_fake_device:
