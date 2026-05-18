@@ -17,7 +17,7 @@ except:
 DIRNOW = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(DIRNOW, "data")
 CT_FILE = os.path.join(DATA_DIR, "CT.nii")
-CT_PICKLE = os.path.join(DATA_DIR, "CT.pickle")
+SEG_CT_FILE = os.path.join(DATA_DIR, "SegmentationCT.nii")
 BONE_STL = os.path.join(DATA_DIR, "BONE-1.real.stl")
 TOOL_STL = os.path.join(DATA_DIR, "TPS-B4D0-015.stl")
 
@@ -26,42 +26,64 @@ remote_auto_fetch(
     "https://github.com/GGN-2015/medscope_demo_project/releases/download/binary_file/CT.nii",
     CT_FILE, md5_hash="58C6F98ED7C3E9DB4B5CD265CADD5882")
 
-def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False):
+remote_auto_fetch(
+    "https://github.com/GGN-2015/medscope_demo_project/releases/download/SegmentationCT/SegmentationCT.nii",
+    SEG_CT_FILE, md5_hash="4d9cb97bd42241b45cd0f4a75769ca04")
+
+def make_and_load_pickle(nii_filepath:str, min_val:float, max_val:float) -> np.ndarray:
+    assert nii_filepath.endswith(".nii")
     # Load CT file
-    if not os.path.isfile(CT_PICKLE):
-        print("Generating CT.pickle ...")
-        arr = nii_file_to_numpy(CT_FILE, 1.0, 1.0, 1.0)
-        arr[arr <= 3] = 3
-        arr[arr >= 160] = 160
+    pickle_path = nii_filepath[:-4] + ".pickle"
+
+    if not os.path.isfile(pickle_path):
+        print(f"Generating {pickle_path} ...")
+        arr = nii_file_to_numpy(nii_filepath, 1.0, 1.0, 1.0)
+        arr[arr <= min_val] = min_val
+        arr[arr >= max_val] = max_val
         arr_norm = (arr - np.min(arr)) / (np.max(arr) - np.min(arr) + 1e-8)
         arr_uint8 = (arr_norm * 255).astype(np.uint8)
-        with open(CT_PICKLE, "wb") as fp: # Create pickle
+        with open(pickle_path, "wb") as fp: # Create pickle
             pickle.dump(arr_uint8, fp)  
-    
     else:
-        print("Loading CT.pickle ...")
-        with open(CT_PICKLE, "rb") as fp: # Read pickle
+        print(f"Loading {pickle_path} ...")
+        with open(pickle_path, "rb") as fp: # Read pickle
             arr_uint8 = pickle.load(fp)
+    return arr_uint8
 
-    print("CT.shape:", arr_uint8.shape)
+def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False):
+
+    # 构建 RGB 通道
+    ct_arr_uint8 = make_and_load_pickle(CT_FILE, 3, 160)
+    print("CT.shape:", ct_arr_uint8.shape)
+    ct_arr_uint8 = np.repeat(ct_arr_uint8[np.newaxis, ...], 3, axis=0)
+
+    # 掩码
+    seg_arr_uint8 = make_and_load_pickle(SEG_CT_FILE, 0, 1)
+    print("SegmentationCT.shape:", seg_arr_uint8.shape)
+
+    # seg_arr_uint8 的尺寸必须和 ct_arr_uint8 在一个通道上相同
+    assert seg_arr_uint8.shape == ct_arr_uint8.shape[1:]
+
+    # 把掩码打到红色通道
+    ct_arr_uint8[0, :, :] = np.maximum(ct_arr_uint8[0, :, :], (seg_arr_uint8 >= 0.5) * 255)
 
     # Fill in your ip addr
     if not use_fake_device:
         print("Connecting ap200 device ...")
         bone_and_tip_info:AbsBoneAndTipInfo = Ap200_BoneAndTipInfo(device_ip_addr)
     else:
-        bone_and_tip_info:AbsBoneAndTipInfo = FakeBoneAndTipInfo(arr_uint8.shape[0], arr_uint8.shape[1], arr_uint8.shape[2])
+        bone_and_tip_info:AbsBoneAndTipInfo = FakeBoneAndTipInfo(ct_arr_uint8.shape[1], ct_arr_uint8.shape[2], ct_arr_uint8.shape[3])
 
     # Initialize app and window
     app = medscope.MedScopeSystem(sys.argv)
     window = medscope.MedScopeWindow(
-        im_wrap_xy=medscope.ImageWrap(y_rev=True, transpose=True),
-        im_wrap_xz=medscope.ImageWrap(y_rev=True, transpose=True),
+        im_wrap_xy=medscope.ImageWrap(x_rev=True, y_rev=True, transpose=True),
+        im_wrap_xz=medscope.ImageWrap(x_rev=True, y_rev=True, transpose=True),
         im_wrap_yz=medscope.ImageWrap(x_rev=True, y_rev=True)
     )
 
     # Load Ct file
-    window.set_volume(arr_uint8)
+    window.set_volume(ct_arr_uint8)
 
     # Add a 3D model
     window.add_model_from_file(
