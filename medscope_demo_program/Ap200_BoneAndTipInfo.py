@@ -1,14 +1,15 @@
 from py_ap200_simple_interface import AimooeExtDrive, I_ConnectionMethod
 import numpy as np
-
+import time
+import json
 import os
-DIRNOW = os.path.dirname(os.path.abspath(__file__))
-TOOL_DIR = os.path.join(DIRNOW, "AimooeTools")
 
 try:
     from .AbsBoneAndTipInfo import AbsBoneAndTipInfo
+    from . import utils
 except:
     from AbsBoneAndTipInfo import AbsBoneAndTipInfo
+    import utils
 
 class Ap200_BoneAndTipInfo(AbsBoneAndTipInfo):
     def __init__(self, ip_addr:str) -> None:
@@ -46,7 +47,7 @@ class Ap200_BoneAndTipInfo(AbsBoneAndTipInfo):
 
     def acquire(self) -> None:
         tool_info_dict = self.drive.get_specific_tool_info(
-            TOOL_DIR, ["BONE-1", "TPS-B4D0-015"])
+            utils.TOOL_DIR, ["BONE-1", "TPS-B4D0-015"])
         
         bone_info = tool_info_dict.get("BONE-1")
         if bone_info is not None:
@@ -65,7 +66,7 @@ class Ap200_BoneAndTipInfo(AbsBoneAndTipInfo):
 
     # 获得 CT 坐标系下的器械尖端坐标
     def get_tip_in_ct(self) -> np.ndarray:
-        return self.bone_to_ct @ np.hstack([self.get_tip_in_bone(), [1]])
+        return (self.bone_to_ct @ np.hstack([self.get_tip_in_bone(), [1]]))[:3]
     
     # 获得骨骼位姿
     def get_bone_pose(self) -> tuple[np.ndarray, ...]:
@@ -75,8 +76,50 @@ class Ap200_BoneAndTipInfo(AbsBoneAndTipInfo):
     def get_tool_pose(self) -> tuple[np.ndarray, ...]:
         return self.tool_Rto, self.tool_Tto
 
-if __name__ == "__main__":
+# 录制新数据
+def record_main():
+    if os.path.isfile(utils.ACTION_JSON):
+        inp = input("are you sure to erase the history record? (y/N)").lower().strip()
+        if not inp.startswith("y"):
+            return
+
+    # 初始化连接
     bone_and_tip_info:AbsBoneAndTipInfo = Ap200_BoneAndTipInfo("192.168.1.10")
+    # 记录一个动作序列
+    json_data = []
+    begin_time = time.time()
+
+    # 录制时长
+    MAX_TIME = 10
+
+    print("Recording ...")
     while True:
         bone_and_tip_info.acquire()
-        print(bone_and_tip_info.get_tip_in_ct())
+        
+        # 记录时间
+        time_now = time.time() - begin_time
+        if time_now > MAX_TIME:
+            break
+
+        # 获取数据
+        tip_in_ct = bone_and_tip_info.get_tip_in_ct()
+        r_bone, t_bone = bone_and_tip_info.get_bone_pose()
+        r_tool, t_tool = bone_and_tip_info.get_tool_pose()
+
+        # 记录当前时刻的信息
+        json_data.append({
+            "time_now": time_now, # 距离系统启动的时间
+            "tip_in_ct": tip_in_ct.tolist(),
+            "r_bone": r_bone.tolist(),
+            "t_bone": t_bone.tolist(),
+            "r_tool": r_tool.tolist(),
+            "t_tool": t_tool.tolist(),
+        })
+
+    # 存档动作序列
+    with open(utils.ACTION_JSON, "w") as fpout:
+        json.dump(json_data, fpout, indent=4)
+
+
+if __name__ == "__main__":
+    record_main()

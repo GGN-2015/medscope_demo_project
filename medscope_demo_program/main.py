@@ -10,25 +10,20 @@ import os
 try:
     from .Ap200_BoneAndTipInfo import Ap200_BoneAndTipInfo, AbsBoneAndTipInfo
     from .FakeBoneAndTipInfo import FakeBoneAndTipInfo
+    from . import utils
 except:
     from Ap200_BoneAndTipInfo import Ap200_BoneAndTipInfo, AbsBoneAndTipInfo
     from FakeBoneAndTipInfo import FakeBoneAndTipInfo
-
-DIRNOW = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(DIRNOW, "data")
-CT_FILE = os.path.join(DATA_DIR, "CT.nii")
-SEG_CT_FILE = os.path.join(DATA_DIR, "SegmentationCT.nii")
-BONE_STL = os.path.join(DATA_DIR, "BONE-1.real.stl")
-TOOL_STL = os.path.join(DATA_DIR, "TPS-B4D0-015.stl")
+    import utils
 
 # download from github
 remote_auto_fetch(
     "https://github.com/GGN-2015/medscope_demo_project/releases/download/binary_file/CT.nii",
-    CT_FILE, md5_hash="58C6F98ED7C3E9DB4B5CD265CADD5882")
+    utils.CT_FILE, md5_hash="58C6F98ED7C3E9DB4B5CD265CADD5882")
 
 remote_auto_fetch(
     "https://github.com/GGN-2015/medscope_demo_project/releases/download/SegmentationCT/SegmentationCT.nii",
-    SEG_CT_FILE, md5_hash="4d9cb97bd42241b45cd0f4a75769ca04")
+    utils.SEG_CT_FILE, md5_hash="4d9cb97bd42241b45cd0f4a75769ca04")
 
 def make_and_load_pickle(nii_filepath:str, min_val:float, max_val:float) -> np.ndarray:
     assert nii_filepath.endswith(".nii")
@@ -53,12 +48,12 @@ def make_and_load_pickle(nii_filepath:str, min_val:float, max_val:float) -> np.n
 def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False, mask_alpha:float=0.7):
 
     # 构建 RGB 通道
-    ct_arr_uint8 = make_and_load_pickle(CT_FILE, 3, 160)
+    ct_arr_uint8 = make_and_load_pickle(utils.CT_FILE, 3, 160)
     print("CT.shape:", ct_arr_uint8.shape)
     ct_arr_uint8 = np.repeat(ct_arr_uint8[np.newaxis, ...], 3, axis=0)
 
     # 掩码
-    seg_arr_uint8 = make_and_load_pickle(SEG_CT_FILE, 0, 1)
+    seg_arr_uint8 = make_and_load_pickle(utils.SEG_CT_FILE, 0, 1)
     print("SegmentationCT.shape:", seg_arr_uint8.shape)
 
     # seg_arr_uint8 的尺寸必须和 ct_arr_uint8 在一个通道上相同
@@ -92,14 +87,26 @@ def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False, mask_alp
     # Add a 3D model
     window.add_model_from_file(
         "bone_model",
-        BONE_STL,
+        utils.BONE_STL,
         (1.0, 1.0, 1.0))  # white, random if not given
     
     # Add a 3D model
     window.add_model_from_file(
+        "plane_with_bone-1",
+        utils.PLANE_WITH_BONE_1,
+        (1.0, 1.0, 0.1))  # yellow, random if not given
+    
+    # Add a 3D model
+    window.add_model_from_file(
         "tool_model",
-        TOOL_STL,
+        utils.TOOL_STL,
         (0.1, 0.1, 0.1))  # gray, random if not given
+    
+        # Add a 3D model
+    window.add_model_from_file(
+        "tool_model_tip",
+        utils.TOOL_TIP_STL,
+        (1.0, 0.0, 0.0))  # red, random if not given
 
     # up at (0, -1, 0)
     window.set_camera_pose(
@@ -119,10 +126,12 @@ def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False, mask_alp
         # 获得骨头模型位姿
         r, t = bone_and_tip_info.get_bone_pose()
         window.set_model_pose("bone_model", t, r)
+        window.set_model_pose("plane_with_bone-1", t, r)
 
         # 获得手术器械模型位姿
         r, t = bone_and_tip_info.get_tool_pose()
         window.set_model_pose("tool_model", t, r)
+        window.set_model_pose("tool_model_tip", t, r)
 
     window.add_timer("move_model", 1, move_model)
     sys.exit(app.exec_())
