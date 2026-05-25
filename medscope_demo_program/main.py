@@ -134,7 +134,9 @@ def main(device_ip_addr:str="192.168.1.10", use_fake_device:bool=False, mask_alp
         window.set_model_pose("tool_model_tip", t, r)
 
         if window.check_model_intersect("plane_with_bone-1", "tool_model_tip"):
-            pass
+            window.set_model_color("plane_with_bone-1", (1.0, 0.0, 0.0))
+        else:
+            window.set_model_color("plane_with_bone-1", (1.0, 1.0, 0.0))
 
     window.add_timer("move_model", 1, move_model)
     sys.exit(app.exec_())
